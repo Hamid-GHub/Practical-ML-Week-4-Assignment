@@ -1,0 +1,80 @@
+ <center> 
+<h1>
+<b>  Personal Activity Prediction </b>  
+</h1> 
+</center>
+
+<ul>
+<li> <h3> <B> Summary </B> </h3>  </li>
+
+This project leverages a large amount of data collected from wearable devices to predict the class of physical activity an individual might have. Usually, these devices tend to quantify self movement. The data from these devices can be useful for discovering some patterns or answering some questions like how much an activity is done or how well an activity is done. In particular, the data for this project have been generated from accelerometers one the belt, forearm and dumbell of 6 participants. The participants were asked to barbell lifts in five different ways both correctly and incorrectly.The data for this project was taken from: http://groupware.les.inf.puc-rio.br/har.
+
+
+<li> <h3> <B> Loading Packages and Dataset </B> </h3>  </li>
+Some necessary packages such as caret for machine learning and rattle for visualization are loaded. In addition, training and testing datasets are loaded into R data.frames from csv files.
+```{r}
+library(caret)
+
+
+training_raw <- read.csv('pml-training.csv')
+testing <- read.csv('pml-testing.csv')
+```
+
+<li> <h3> <B> Feature Selection </B> </h3>  </li>
+In this stage, a meaningful subset of whole features are selected.This removes unnecessary information and  reduces the computational complexity of model to be trained.
+
+```{r}
+training <- training_raw[,c('new_window','num_window','roll_belt','pitch_belt','yaw_belt','total_accel_belt','gyros_belt_x','gyros_belt_y','gyros_belt_z','accel_belt_x','accel_belt_y','accel_belt_z','magnet_belt_x','magnet_belt_y','magnet_belt_z','roll_arm','pitch_arm','yaw_arm','total_accel_arm','classe'  )]
+```
+
+<li> <h3> <B> Data Split </B> </h3>  </li>
+Now, the initial training set is split into two parts, training and validation sets. The training and validation parts have 80% and 20% of initial training set respectively. The 20% validation set is used for model selection. In addition, the label (variable classe) for training and validation sets is converted to factor.
+
+```{r}
+set.seed(18)
+training_index <- createDataPartition(training$classe, p=0.8,list=FALSE)
+
+training <- training[training_index,]
+validation <- training[-training_index,]
+
+training$classe <- as.factor(training$classe)
+validation$classe <- as.factor(validation$classe)
+```
+
+<li> <h3> <B> Model Training </B> </h3>  </li>
+
+Now, it's time to train the model on training dataset. I use two models for this project. The first model is decision tree which is highly interpretable model. The second model is random forest including 10 trees.
+
+```{r}
+
+model_tree <-train(classe ~.,data= training ,method='rpart')
+model_rf<- train(classe ~., data=training,method='rf',ntree=10)
+
+```
+
+
+<li> <h3> <B> Model Selection </B> </h3>  </li>
+The trained models is used to predict the labels for validation data. The predicted labels are then compared to ground truth and accuracy is calculated. The model with higher accuracy is selected as the final model.
+
+```{r}
+val_pred_tree <- predict(model_tree, validation )
+val_pred_rf <-predict(model_rf, validation)
+
+confusionMatrix(val_pred_tree, as.factor(validation$classe))
+confusionMatrix(val_pred_rf,validation$classe)
+
+```
+
+As can be seen above, the accuracy for tree model is 0.7104 while Random Forest model has accuracy of 1 which is perfect. This shows the performance superiority of Random Forest on validation set. Therefore, Random Forest model is selected as the final model.
+<li> <h3> <B> Model Prediction </B> </h3>  </li>
+Lastly, The final model is used to predict labels for test set.
+```{r}
+
+#pred_test_dt <- predict(model_tree,testing)
+pred_test_rf <- predict(model_rf,testing)
+
+#print(pred_test_dt)
+print(pred_test_rf)
+
+```
+
